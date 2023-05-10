@@ -1,12 +1,18 @@
-fn register_agent(_callsign: &str) -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
-}
+pub mod gameflow;
+pub mod playeragent;
+pub mod tradersapi;
+pub mod utilities;
 
-fn main() {
-    const CALLSIGN: &str = "snark";
+use gameflow::game::ask_first_game;
+use playeragent::agent::TradersAgent;
+use tradersapi::api::init_traders_api;
+use tradersapi::api::TradersApi;
 
-    match register_agent(CALLSIGN) {
-        Ok(_) => println!("Registered agent {}", CALLSIGN),
-        Err(e) => println!("Error registering agent {}: {}", CALLSIGN, e),
-    }
+#[tokio::main]
+async fn main() {
+    println!("Welcome to a rusty game of Space Traders!");
+    let traders_api: TradersApi = init_traders_api();
+
+    let my_agent: TradersAgent = ask_first_game(&traders_api).await;
+    println!("Welcome, {}!", my_agent.callsign());
 }
