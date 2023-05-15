@@ -1,41 +1,29 @@
+pub mod api;
 pub mod commands;
 pub mod utilities;
 
-use clap::Parser;
-
-use crate::commands::cmds::init_traders_api;
+use crate::api::api::get_traders_api;
+use crate::commands::cmnds::cli;
 use crate::utilities::util::{read_game, save_game, set_home_dir_path};
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct Args {
-    #[arg(short, long)]
-    callsign: String,
-    // #[arg(short, long)]
-    // token: String,
-}
-
 #[tokio::main]
-async fn main() {
+async fn main() -> () {
     // parse command line arguments
-    let args = Args::parse();
-
-    println!("Hello {}!", args.callsign);
+    let matches = cli().get_matches();
 
     // set game status file path
     const GAME_FILE_NAME: &str = ".spacetraders";
     let game_file_path = set_home_dir_path(GAME_FILE_NAME);
 
-    // read exising game status
-    let game_status = read_game(&game_file_path);
-    println!("{:?}", game_status);
+    // read exising game status if available
+    let mut game_status = read_game(&game_file_path);
 
-    // initialize TradersApi struct
-    let traders_api = init_traders_api();
+    // initialize TradersApi struct for API calls
+    let traders_api = get_traders_api();
 
-    // call api based on command line arguments
-    traders_api.call_api(&args).await;
+    traders_api.process_command(matches, &mut game_status).await;
 
     // save existing game status
-    save_game(&game_file_path, game_status)
+    save_game(&game_file_path, &game_status);
+    // println!("{:#?}", game_status);
 }
