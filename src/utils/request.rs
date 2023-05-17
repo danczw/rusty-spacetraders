@@ -28,8 +28,10 @@ pub async fn online_status_req(
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!(
-                "Error getting online status: {}",
+                "Error getting online status - {}",
                 resp_value["error"]["message"]
+                    .to_string()
+                    .replace("\\\"", "")
             ),
         )));
     } else {
@@ -67,7 +69,7 @@ pub async fn reg_agent_req(
         println!("Registered new agent '{}'.", callsign);
         println!("{:#?}", resp_value);
         return Ok(());
-    } else if resp_value["error"]["code"] == 422 {
+    } else if resp_value["error"]["code"].is_number() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!(
@@ -82,6 +84,45 @@ pub async fn reg_agent_req(
             format!(
                 "Error registering new agent {} due to unforeseen reason: {}",
                 callsign, resp_value["error"]["message"]
+            ),
+        )));
+    }
+}
+
+pub async fn location_req(
+    game_status: &HashMap<String, String>,
+    url: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let client: Client = reqwest::Client::new();
+    let resp_text = client
+        .get(url)
+        .header("Content-Type", "application/json")
+        .header(
+            "Authorization",
+            "Bearer ".to_owned() + game_status.get("token").unwrap(),
+        )
+        .send()
+        .await?
+        .text()
+        .await?;
+    let resp_value: Value = serde_json::from_str(&resp_text)?;
+
+    // check if is error
+    if resp_value["data"]["symbol"].is_string() {
+        println!("{:#?}", resp_value);
+        return Ok(());
+    } else if resp_value["error"]["code"].is_number() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("Error getting location: {}", resp_value["error"]["message"]),
+        )));
+    } else {
+        // TODO: better handle other errors
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!(
+                "Error getting waypoint data due to unforeseen reason: {}",
+                resp_value["error"]["message"]
             ),
         )));
     }
