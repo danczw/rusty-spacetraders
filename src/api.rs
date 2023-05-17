@@ -6,247 +6,186 @@ use crate::utils::helpers as hlp;
 use crate::utils::request as req;
 use crate::utils::status;
 
-pub struct TradersApi {
-    // TODO: move to request.rs
-    api_url_root: String,
-    api_suburl_register: String,
-    api_suburl_status: String,
-    api_suburl_location: String,
-}
+pub async fn process_command(
+    matches: ArgMatches,
+    game_status: &mut HashMap<String, String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // initialize TradersApi struct for API calls
+    let api = req::get_traders_api();
 
-pub fn get_traders_api() -> TradersApi {
-    // Initialize TradersApi struct with default values
-    TradersApi {
-        api_url_root: "https://api.spacetraders.io/v2/".to_string(),
-        api_suburl_register: "register".to_string(),
-        api_suburl_status: "my/agent".to_string(),
-        api_suburl_location: "systems/".to_string(),
-    }
-}
+    // match subcommands and call api functions
+    match matches.subcommand() {
+        Some(("status", sub_matches)) => {
+            return get_status(api, &game_status, sub_matches).await;
+        }
 
-impl TradersApi {
-    // Immutable access to api_url_root via getter
-    pub fn api_url_root(&self) -> &str {
-        &self.api_url_root
-    }
+        Some(("new", sub_matches)) => {
+            return register_new_agent(api, game_status, sub_matches).await;
+        }
 
-    // Immutable access to api_suburl_register via getter
-    pub fn api_suburl_register(&self) -> &str {
-        &self.api_suburl_register
-    }
+        Some(("login", sub_matches)) => {
+            return login_agent(api, game_status, sub_matches).await;
+        }
 
-    // Immutable access to api_suburl_status via getter
-    pub fn api_suburl_status(&self) -> &str {
-        &self.api_suburl_status
-    }
+        Some(("location", sub_matches)) => {
+            return view_location(api, &game_status, sub_matches).await;
+        }
 
-    // Immutable access to api_suburl_location via getter
-    pub fn api_suburl_location(&self) -> &str {
-        &self.api_suburl_location
+        _ => Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "No command found.",
+        ))),
     }
 }
 
-impl TradersApi {
-    pub async fn process_command(
-        &self,
-        matches: ArgMatches,
-        game_status: &mut HashMap<String, String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // match subcommands and call api functions
-        match matches.subcommand() {
-            Some(("status", sub_matches)) => {
-                return self.get_status(&game_status, sub_matches).await;
-            }
-
-            Some(("new", sub_matches)) => {
-                let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
-                return self.register_new_agent(game_status, callsign).await;
-            }
-
-            Some(("login", sub_matches)) => {
-                return self.login_agent(game_status, sub_matches).await;
-            }
-
-            Some(("location", sub_matches)) => {
-                return self.view_location(&game_status, sub_matches).await;
-            }
-
-            _ => Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "No command found.",
-            ))),
-        }
-    }
-
-    pub async fn get_status(
-        &self,
-        game_status: &HashMap<String, String>,
-        sub_matches: &ArgMatches,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // Check if local or remote status is requested
-        if sub_matches.get_flag("id_local") {
-            println!("Getting local status...");
-            println!("callsign: {}", game_status.get("callsign").unwrap());
-            println!("token:\n{}", game_status.get("token").unwrap());
-            Ok(())
-        } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
-            // Check if token is present
-            if !status::check_local_token(game_status) {
-                return hlp::no_token_error();
-            }
-
-            println!("Getting remote status...");
-            // Build the URL
-            let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
-            let req_result = req::online_status_req(&game_status, url).await;
-
-            if req_result.is_ok() {
-                println!("{:#?}", req_result.unwrap()["data"]);
-                return Ok(());
-            } else {
-                let req_result_err_msg = req_result.unwrap_err().to_string();
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )));
-            }
-        } else {
-            // handle unknown error - should never happen ;)
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Error getting status due to unknown reason.",
-            )));
-        }
-    }
-
-    pub async fn register_new_agent(
-        &self,
-        game_status: &mut HashMap<String, String>,
-        callsign: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // Check if local status already has a callsign
-        status::overwrite_status_consent(game_status);
-
-        // Build the URL
-        let url = format!("{}{}", self.api_url_root(), self.api_suburl_register());
-        return req::reg_agent_req(game_status, url, callsign).await;
-    }
-
-    pub async fn login_agent(
-        &self,
-        game_status: &mut HashMap<String, String>,
-        sub_matches: &ArgMatches,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        // Check if local status already has a callsign
-        status::overwrite_status_consent(game_status);
-        println!("Logging in...");
-
-        // Get callsign from command line and ask for user for token
-        let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
-
-        println!("Enter token: ");
-        let mut token = String::new();
-        io::stdin()
-            .read_line(&mut token)
-            .expect("Failed to read line");
-
-        let token = match token.trim().parse() {
-            Ok(tkn) => tkn,
-            Err(msg) => {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    msg,
-                )))
-            }
-        };
-
-        // reset and update local status
-        let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
-
-        // Get remote status
-        let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
-        let req_result = req::online_status_req(&game_status, url).await;
-
-        match req_result {
-            Ok(_) => {
-                println!("Login successful!");
-                println!("{:#?}", req_result.unwrap()["data"]);
-                return Ok(());
-            }
-            Err(_) => {
-                let req_result_err_msg = req_result.unwrap_err().to_string();
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )));
-            }
-        }
-    }
-
-    pub async fn view_location(
-        &self,
-        game_status: &HashMap<String, String>,
-        sub_matches: &ArgMatches,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn get_status(
+    api: req::TradersApi,
+    game_status: &HashMap<String, String>,
+    sub_matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Check if local or remote status is requested
+    if sub_matches.get_flag("id_local") {
+        println!("Getting local status...");
+        println!("callsign: {}", game_status.get("callsign").unwrap());
+        println!("token:\n{}", game_status.get("token").unwrap());
+        Ok(())
+    } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
         // Check if token is present
         if !status::check_local_token(game_status) {
             return hlp::no_token_error();
         }
 
-        if sub_matches.contains_id("id_waypoint") {
-            let location_passed = sub_matches.get_one::<String>("id_waypoint").unwrap();
-            println!("Getting data for waypoint {}...", location_passed);
-
-            // Divide provided location into system and waypoint coords
-            let sys_waypoint_tup = hlp::location_split(location_passed);
-
-            // Get waypoint data
-            let url = format!(
-                "{}{}/{}/waypoints/{}",
-                self.api_url_root(),
-                self.api_suburl_location(),
-                sys_waypoint_tup.0,
-                sys_waypoint_tup.1
-            );
-
-            let _ = req::location_req(game_status, url).await;
+        println!("Getting remote status...");
+        let req_result = api.online_status_req(&game_status).await;
+        if req_result.is_ok() {
+            println!("{:#?}", req_result.unwrap()["data"]);
             return Ok(());
         } else {
-            println!("Getting data for headquarter waypoint...");
-            // Get remote status
-            let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
-            let status_req_result = req::online_status_req(&game_status, url).await;
+            let req_result_err_msg = req_result.unwrap_err().to_string();
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                req_result_err_msg,
+            )));
+        }
+    } else {
+        // handle unknown error - should never happen ;)
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Error getting status due to unknown reason.",
+        )));
+    }
+}
 
-            match status_req_result {
-                Ok(status_req_result) => {
-                    let hq_location = status_req_result["data"]
-                        .get("headquarters")
-                        .unwrap()
-                        .to_string();
-                    // Divide provided location into system and waypoint coords
-                    let sys_waypoint_tup = hlp::location_split(&hq_location);
+pub async fn register_new_agent(
+    api: req::TradersApi,
+    game_status: &mut HashMap<String, String>,
+    sub_matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Check if local status already has a callsign
+    status::overwrite_status_consent(game_status);
 
-                    println!("Headquarter detected at {}...", hq_location);
-                    // Get waypoint data
-                    let url = format!(
-                        "{}{}/{}/waypoints/{}",
-                        self.api_url_root(),
-                        self.api_suburl_location(),
-                        sys_waypoint_tup.0,
-                        sys_waypoint_tup.1
-                    );
+    // Get callsign from command line argument and register new agent
+    let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
+    return api.reg_agent_req(game_status, callsign).await;
+}
 
-                    let _ = req::location_req(game_status, url).await;
+pub async fn login_agent(
+    api: req::TradersApi,
+    game_status: &mut HashMap<String, String>,
+    sub_matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Ask for user for token
+    println!("Enter token: ");
+    let mut token = String::new();
+    io::stdin()
+        .read_line(&mut token)
+        .expect("Failed to read line");
+    let token = match token.trim().parse() {
+        Ok(tkn) => tkn,
+        Err(msg) => {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                msg,
+            )))
+        }
+    };
 
-                    return Ok(());
-                }
-                Err(status_req_result) => {
-                    let status_req_result_err_msg = status_req_result.to_string();
-                    return Err(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        status_req_result_err_msg,
-                    )));
-                }
+    // Check if local status already has a callsign
+    status::overwrite_status_consent(game_status);
+    println!("Logging in...");
+
+    // Get callsign from command line argument
+    let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
+
+    // Update local status and get remote status
+    let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
+    let req_result = api.online_status_req(&game_status).await;
+
+    // Check if login was successful
+    match req_result {
+        Ok(_) => {
+            println!("Login successful!");
+            println!("{:#?}", req_result.unwrap()["data"]);
+            return Ok(());
+        }
+        Err(_) => {
+            let req_result_err_msg = req_result.unwrap_err().to_string();
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                req_result_err_msg,
+            )));
+        }
+    }
+}
+
+pub async fn view_location(
+    api: req::TradersApi,
+    game_status: &HashMap<String, String>,
+    sub_matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Check if token is present
+    if !status::check_local_token(game_status) {
+        return hlp::no_token_error();
+    }
+
+    if sub_matches.contains_id("id_waypoint") {
+        // Get waypoint location from command line argument
+        let location_passed = sub_matches.get_one::<String>("id_waypoint").unwrap();
+        println!("Getting data for waypoint {}...", location_passed);
+
+        // Divide provided location into system and waypoint coords
+        let sys_waypoint_tup = hlp::location_split(location_passed);
+
+        // Get waypoint data
+        let _ = api.location_req(game_status, sys_waypoint_tup).await;
+        return Ok(());
+    } else {
+        println!("Getting data for headquarter waypoint...");
+        // Get remote status
+        let status_req_result = api.online_status_req(&game_status).await;
+
+        // Check if location view request was successful
+        match status_req_result {
+            Ok(status_req_result) => {
+                let hq_location = status_req_result["data"]
+                    .get("headquarters")
+                    .unwrap()
+                    .to_string();
+                println!("Headquarter detected at {}...", hq_location);
+
+                // Divide provided location into system and waypoint coords
+                let sys_waypoint_tup = hlp::location_split(&hq_location);
+
+                // Get waypoint data
+                let _ = api.location_req(game_status, sys_waypoint_tup).await;
+                return Ok(());
+            }
+            Err(status_req_result) => {
+                let status_req_result_err_msg = status_req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    status_req_result_err_msg,
+                )));
             }
         }
     }
