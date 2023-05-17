@@ -78,10 +78,24 @@ impl TradersApi {
             println!("Getting remote status...");
             // Build the URL
             let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
-            return online_status_req(&game_status, url).await;
+            let req_result = online_status_req(&game_status, url).await;
+
+            if req_result.is_ok() {
+                println!("{:#?}", req_result.unwrap()["data"]);
+                return Ok(());
+            } else {
+                let req_result_err_msg = req_result.unwrap_err().to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
         } else {
-            println!("Add -l for local status and -r for remote status");
-            return Ok(());
+            // handle unknown error - should never happen ;)
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Error getting status due to unknown reason.",
+            )));
         }
     }
 
@@ -111,14 +125,27 @@ impl TradersApi {
         let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
         let token = sub_matches.get_one::<String>("id_token").unwrap();
 
-        // TODO: implement online status call fn
+        // Get remote status
+        let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
+        let req_result = online_status_req(&game_status, url).await;
 
-        // reset and update local status
-        game_status.clear();
-        game_status.insert("callsign".to_string(), callsign.to_string());
-        game_status.insert("token".to_string(), token.to_string());
+        if req_result.is_ok() {
+            println!("Login successful!");
 
-        Ok(())
+            // reset and update local status
+            game_status.clear();
+            game_status.insert("callsign".to_string(), callsign.to_string());
+            game_status.insert("token".to_string(), token.to_string());
+            println!("{:#?}", req_result.unwrap()["data"]);
+
+            return Ok(());
+        } else {
+            let req_result_err_msg = req_result.unwrap_err().to_string();
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                req_result_err_msg,
+            )));
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub async fn online_status_req(
     game_status: &HashMap<String, String>,
     url: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Value, Box<dyn std::error::Error>> {
     // Get agent status from Space Traders
     let client: Client = reqwest::Client::new();
     let resp = client
@@ -23,8 +23,7 @@ pub async fn online_status_req(
 
     // check response
     if resp_value["data"]["symbol"].is_string() {
-        println!("{:#?}", resp_value["data"]);
-        return Ok(());
+        return Ok(resp_value);
     } else if resp_value["error"]["code"].is_number() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
