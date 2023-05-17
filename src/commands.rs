@@ -1,8 +1,7 @@
-pub mod cmnds {
-    use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command};
 
-    pub fn cli() -> Command {
-        Command::new("rst")
+pub fn cli() -> Command {
+    Command::new("rst")
             .about("A rust based SpaceTraders CLI.")
             .arg_required_else_help(true)
             .subcommand_required(true)
@@ -12,7 +11,7 @@ pub mod cmnds {
                     .about("Get the status of the game, add -l for local status and -r for remote status.")
                     .arg(
                         Arg::new("local")
-                            .help("Get the local status of the game.")
+                            .help("Get the local status of the game: saved callsign and token.")
                             .id("id_local")
                             .short('l')
                             .long("local")
@@ -65,5 +64,4 @@ pub mod cmnds {
                     )
                     .arg_required_else_help(true)
             )
-    }
 }

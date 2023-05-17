@@ -1,10 +1,11 @@
 pub mod api;
 pub mod commands;
-pub mod utilities;
+pub mod utils;
 
-use crate::api::api::get_traders_api;
-use crate::commands::cmnds::cli;
-use crate::utilities::util::{read_game, save_game, set_home_dir_path};
+use crate::api::get_traders_api;
+use crate::commands::cli;
+use crate::utils::status::{read_game, save_game, set_home_dir_path};
+use std::process::exit;
 
 #[tokio::main]
 async fn main() -> () {
@@ -20,10 +21,13 @@ async fn main() -> () {
 
     // initialize TradersApi struct for API calls
     let traders_api = get_traders_api();
+    let process_result = traders_api.process_command(matches, &mut game_status).await;
 
-    traders_api.process_command(matches, &mut game_status).await;
+    if process_result.is_err() {
+        println!("Error: {}", process_result.unwrap_err());
+        exit(1);
+    }
 
     // save existing game status
     save_game(&game_file_path, &game_status);
-    // println!("{:#?}", game_status);
 }
