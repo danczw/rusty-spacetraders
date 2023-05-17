@@ -54,6 +54,7 @@ pub fn cli() -> Command {
                             .long("callsign")
                             .required(true)
                     )
+                    // TODO: move token to user input
                     .arg(
                         Arg::new("token")
                             .help("The token of your existing agent.")
@@ -63,5 +64,18 @@ pub fn cli() -> Command {
                             .required(true)
                     )
                     .arg_required_else_help(true)
+            )
+            // check waypoint
+            .subcommand(
+                Command::new("location")
+                    .about("View a waypoint location. Defaults to current agent headquarter.")
+                    .arg(
+                        Arg::new("waypoint")
+                            .help("The waypoint to check. E.g., X1-DF55-20250Z")
+                            .id("id_waypoint")
+                            .short('w')
+                            .long("waypoint")
+                            .action(ArgAction::Set)
+                    )
             )
 }
