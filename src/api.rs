@@ -1,4 +1,5 @@
 use clap::ArgMatches;
+use colored::*;
 use std::collections::HashMap;
 use std::io;
 
@@ -16,7 +17,7 @@ pub async fn process_command(
     // match subcommands and call api functions
     match matches.subcommand() {
         Some(("status", sub_matches)) => {
-            return get_status(api, &game_status, sub_matches).await;
+            return get_status(api, game_status, sub_matches).await;
         }
 
         Some(("new", sub_matches)) => {
@@ -28,7 +29,7 @@ pub async fn process_command(
         }
 
         Some(("location", sub_matches)) => {
-            return view_location(api, &game_status, sub_matches).await;
+            return view_location(api, game_status, sub_matches).await;
         }
 
         _ => Err(Box::new(std::io::Error::new(
@@ -46,8 +47,16 @@ pub async fn get_status(
     // Check if local or remote status is requested
     if sub_matches.get_flag("id_local") {
         println!("Getting local status...");
-        println!("callsign: {}", game_status.get("callsign").unwrap());
-        println!("token:\n{}", game_status.get("token").unwrap());
+        println!(
+            "{} {}",
+            "callsign: ".green(),
+            game_status.get("callsign").unwrap()
+        );
+        println!(
+            "{} {}",
+            "token: ".green(),
+            game_status.get("token").unwrap()
+        );
         Ok(())
     } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
         // Check if token is present
@@ -56,7 +65,7 @@ pub async fn get_status(
         }
 
         println!("Getting remote status...");
-        let req_result = api.online_status_req(&game_status).await;
+        let req_result = api.remote_status_req(&game_status).await;
         if req_result.is_ok() {
             println!("{:#?}", req_result.unwrap()["data"]);
             return Ok(());
@@ -119,12 +128,12 @@ pub async fn login_agent(
 
     // Update local status and get remote status
     let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
-    let req_result = api.online_status_req(&game_status).await;
+    let req_result = api.remote_status_req(&game_status).await;
 
     // Check if login was successful
     match req_result {
         Ok(_) => {
-            println!("Login successful!");
+            println!("{}", "Login successful!".green());
             println!("{:#?}", req_result.unwrap()["data"]);
             return Ok(());
         }
@@ -162,7 +171,7 @@ pub async fn view_location(
     } else {
         println!("Getting data for headquarter waypoint...");
         // Get remote status
-        let status_req_result = api.online_status_req(&game_status).await;
+        let status_req_result = api.remote_status_req(&game_status).await;
 
         // Check if location view request was successful
         match status_req_result {

@@ -9,10 +9,10 @@ pub fn cli() -> Command {
             // subcommand for local status
             .subcommand(
                 Command::new("status")
-                    .about("Get the status of the game, add -l for local status and -r for remote status.")
+                    .about("Get the status of the game, add -l for local saved status and -r for remote (online) status.")
                     .arg(
                         Arg::new("local")
-                            .help("Get the local status of the game: saved callsign and token.")
+                            .help("Get the local saved status of the game: callsign and token.")
                             .id("id_local")
                             .short('l')
                             .long("local")
@@ -21,7 +21,7 @@ pub fn cli() -> Command {
                     )
                     .arg(
                         Arg::new("remote")
-                            .help("Get the online status of the game.")
+                            .help("Get the remote (online) status of the game.")
                             .id("id_remote")
                             .short('r')
                             .long("remote")

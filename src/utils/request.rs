@@ -42,7 +42,7 @@ impl TradersApi {
 }
 
 impl TradersApi {
-    pub async fn online_status_req(
+    pub async fn remote_status_req(
         &self,
         game_status: &HashMap<String, String>,
     ) -> Result<Value, Box<dyn std::error::Error>> {
@@ -71,7 +71,7 @@ impl TradersApi {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
-                    "Error getting online status - {}",
+                    "Error getting remote status - {}",
                     resp_value["error"]["message"]
                         .to_string()
                         .replace("\\\"", "")
@@ -82,7 +82,7 @@ impl TradersApi {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
-                    "Error getting online status due to unforeseen reason: {}",
+                    "Error getting remote status due to unforeseen reason - {}",
                     resp_value["error"]["message"]
                 ),
             )));
@@ -128,7 +128,7 @@ impl TradersApi {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
-                    "Error registering new agent {} due to unforeseen reason: {}",
+                    "Error registering new agent {} due to unforeseen reason - {}",
                     callsign, resp_value["error"]["message"]
                 ),
             )));
@@ -170,14 +170,17 @@ impl TradersApi {
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                format!("Error getting location: {}", resp_value["error"]["message"]),
+                format!(
+                    "Error getting location - {}",
+                    resp_value["error"]["message"]
+                ),
             )));
         } else {
             // TODO: better handle other errors
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
-                    "Error getting waypoint data due to unforeseen reason: {}",
+                    "Error getting waypoint data due to unforeseen reason - {}",
                     resp_value["error"]["message"]
                 ),
             )));

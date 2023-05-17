@@ -5,6 +5,7 @@ pub mod utils;
 use crate::api::process_command;
 use crate::commands::cli;
 use crate::utils::status;
+use colored::*;
 use std::process::exit;
 
 #[tokio::main]
@@ -23,7 +24,7 @@ async fn main() -> () {
     let process_result = process_command(matches, &mut game_status).await;
 
     if process_result.is_err() {
-        println!("Error: {}", process_result.unwrap_err());
+        println!("{} {}", "Error! ".red(), process_result.unwrap_err());
         exit(1);
     }
 
