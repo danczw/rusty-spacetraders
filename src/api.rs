@@ -1,9 +1,10 @@
 use clap::ArgMatches;
 use std::collections::HashMap;
+use std::io;
 
 use crate::utils::helpers::location_split;
 use crate::utils::request as req;
-use crate::utils::status::{check_local_token, overwrite_status_consent};
+use crate::utils::status;
 
 pub struct TradersApi {
     // TODO: move to request.rs
@@ -90,7 +91,7 @@ impl TradersApi {
             Ok(())
         } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
             // Check if token is present
-            if !check_local_token(game_status) {
+            if !status::check_local_token(game_status) {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     "No token found. Please login first.",
@@ -127,7 +128,7 @@ impl TradersApi {
         callsign: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if local status already has a callsign
-        overwrite_status_consent(game_status);
+        status::overwrite_status_consent(game_status);
 
         // Build the URL
         let url = format!("{}{}", self.api_url_root(), self.api_suburl_register());
@@ -140,17 +141,30 @@ impl TradersApi {
         sub_matches: &ArgMatches,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if local status already has a callsign
-        overwrite_status_consent(game_status);
+        status::overwrite_status_consent(game_status);
         println!("Logging in...");
 
-        // Get callsign and token from command line
+        // Get callsign from command line and ask for user for token
         let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
-        let token = sub_matches.get_one::<String>("id_token").unwrap();
+
+        println!("Enter token: ");
+        let mut token = String::new();
+        io::stdin()
+            .read_line(&mut token)
+            .expect("Failed to read line");
+
+        let token = match token.trim().parse() {
+            Ok(tkn) => tkn,
+            Err(msg) => {
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    msg,
+                )))
+            }
+        };
 
         // reset and update local status
-        game_status.clear();
-        game_status.insert("callsign".to_string(), callsign.to_string());
-        game_status.insert("token".to_string(), token.to_string());
+        let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
 
         // Get remote status
         let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
@@ -159,13 +173,7 @@ impl TradersApi {
         match req_result {
             Ok(_) => {
                 println!("Login successful!");
-
-                // reset and update local status
-                game_status.clear();
-                game_status.insert("callsign".to_string(), callsign.to_string());
-                game_status.insert("token".to_string(), token.to_string());
                 println!("{:#?}", req_result.unwrap()["data"]);
-
                 return Ok(());
             }
             Err(_) => {
@@ -184,7 +192,7 @@ impl TradersApi {
         sub_matches: &ArgMatches,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if token is present
-        if !check_local_token(game_status) {
+        if !status::check_local_token(game_status) {
             // TODO: move to function
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,

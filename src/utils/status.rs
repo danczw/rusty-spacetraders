@@ -53,3 +53,14 @@ pub fn check_local_token(game_status: &HashMap<String, String>) -> bool {
     }
     true
 }
+
+pub fn reset_local_status(
+    game_status: &mut HashMap<String, String>,
+    callsign: String,
+    token: String,
+) -> &mut HashMap<String, String> {
+    game_status.clear();
+    game_status.insert("callsign".to_string(), callsign);
+    game_status.insert("token".to_string(), token);
+    game_status
+}

@@ -54,15 +54,6 @@ pub fn cli() -> Command {
                             .long("callsign")
                             .required(true)
                     )
-                    // TODO: move token to user input
-                    .arg(
-                        Arg::new("token")
-                            .help("The token of your existing agent.")
-                            .id("id_token")
-                            .short('t')
-                            .long("token")
-                            .required(true)
-                    )
                     .arg_required_else_help(true)
             )
             // check waypoint
