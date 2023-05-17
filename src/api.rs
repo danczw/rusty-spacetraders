@@ -2,7 +2,7 @@ use clap::ArgMatches;
 use std::collections::HashMap;
 use std::io;
 
-use crate::utils::helpers::location_split;
+use crate::utils::helpers as hlp;
 use crate::utils::request as req;
 use crate::utils::status;
 
@@ -92,10 +92,7 @@ impl TradersApi {
         } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
             // Check if token is present
             if !status::check_local_token(game_status) {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "No token found. Please login first.",
-                )));
+                return hlp::no_token_error();
             }
 
             println!("Getting remote status...");
@@ -193,11 +190,7 @@ impl TradersApi {
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if token is present
         if !status::check_local_token(game_status) {
-            // TODO: move to function
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "No token found. Please login first.",
-            )));
+            return hlp::no_token_error();
         }
 
         if sub_matches.contains_id("id_waypoint") {
@@ -205,7 +198,7 @@ impl TradersApi {
             println!("Getting data for waypoint {}...", location_passed);
 
             // Divide provided location into system and waypoint coords
-            let sys_waypoint_tup = location_split(location_passed);
+            let sys_waypoint_tup = hlp::location_split(location_passed);
 
             // Get waypoint data
             let url = format!(
@@ -231,7 +224,7 @@ impl TradersApi {
                         .unwrap()
                         .to_string();
                     // Divide provided location into system and waypoint coords
-                    let sys_waypoint_tup = location_split(&hq_location);
+                    let sys_waypoint_tup = hlp::location_split(&hq_location);
 
                     println!("Headquarter detected at {}...", hq_location);
                     // Get waypoint data

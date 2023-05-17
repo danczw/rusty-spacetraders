@@ -1,5 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 
+// TODO: move command strings to one place, e.g., enum
 pub fn cli() -> Command {
     Command::new("rst")
             .about("A rust based SpaceTraders CLI.")
