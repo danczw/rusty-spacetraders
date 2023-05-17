@@ -190,7 +190,6 @@ impl TradersApi {
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Check if token is present
         if !status::check_local_token(game_status) {
-            // TODO: move to function
             return hlp::no_token_error();
         }
 
