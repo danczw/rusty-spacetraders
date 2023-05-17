@@ -11,3 +11,10 @@ pub fn location_split(location: &str) -> (String, String) {
 
     (system, waypoint)
 }
+
+pub fn no_token_error() -> Result<(), Box<dyn std::error::Error>> {
+    Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "No token found. Please login first.",
+    )))
+}
