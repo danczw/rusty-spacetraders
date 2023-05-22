@@ -7,6 +7,7 @@ pub struct TradersApi {
     api_suburl_register: String,
     api_suburl_status: String,
     api_suburl_location: String,
+    api_suburl_contracts: String,
 }
 
 pub fn get_traders_api() -> TradersApi {
@@ -16,6 +17,7 @@ pub fn get_traders_api() -> TradersApi {
         api_suburl_register: "register".to_string(),
         api_suburl_status: "my/agent".to_string(),
         api_suburl_location: "systems/".to_string(),
+        api_suburl_contracts: "my/contracts".to_string(),
     }
 }
 
@@ -38,6 +40,11 @@ impl TradersApi {
     // Immutable access to api_suburl_location via getter
     pub fn api_suburl_location(&self) -> &str {
         &self.api_suburl_location
+    }
+
+    // Immutable access to api_suburl_contracts via getter
+    pub fn api_suburl_contracts(&self) -> &str {
+        &self.api_suburl_contracts
     }
 }
 
@@ -178,6 +185,50 @@ impl TradersApi {
                 std::io::ErrorKind::Other,
                 format!(
                     "Error getting location - {}",
+                    resp_value["error"]["message"]
+                ),
+            )));
+        } else {
+            // TODO: better handle other errors
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Error getting waypoint data due to unforeseen reason - {}",
+                    resp_value["error"]["message"]
+                ),
+            )));
+        }
+    }
+
+    pub async fn all_contracts_req(
+        &self,
+        game_status: &HashMap<String, String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Build url
+        let url = format!("{}{}", self.api_url_root(), self.api_suburl_contracts());
+
+        let client: Client = reqwest::Client::new();
+        let resp_text = client
+            .get(url)
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                "Bearer ".to_owned() + game_status.get("token").unwrap(),
+            )
+            .send()
+            .await?
+            .text()
+            .await?;
+        let resp_value: Value = serde_json::from_str(&resp_text)?;
+
+        if resp_value["data"].is_array() {
+            println!("{:#?}", resp_value);
+            return Ok(());
+        } else if resp_value["error"]["code"].is_number() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Error getting all contracts - {}",
                     resp_value["error"]["message"]
                 ),
             )));
