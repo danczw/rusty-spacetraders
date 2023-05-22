@@ -8,11 +8,13 @@ struct CommandStrings {
     sc_new: &'static str,
     sc_login: &'static str,
     sc_location: &'static str,
+    sc_contract: &'static str,
     // Args
     arg_local: (&'static str, &'static str, char),
     arg_remote: (&'static str, &'static str, char),
     arg_callsign: (&'static str, &'static str, char),
     arg_waypoint: (&'static str, &'static str, char),
+    arg_contract: (&'static str, &'static str, char),
 }
 
 static ALL_COMMANDS: CommandStrings = CommandStrings {
@@ -21,11 +23,13 @@ static ALL_COMMANDS: CommandStrings = CommandStrings {
     sc_new: "new",
     sc_login: "login",
     sc_location: "location",
+    sc_contract: "contract",
     // Args
     arg_local: ("local", "id_local", 'l'),
     arg_remote: ("remote", "id_remote", 'r'),
     arg_callsign: ("callsign", "id_callsign", 'c'),
     arg_waypoint: ("waypoint", "id_waypoint", 'w'),
+    arg_contract: ("contract", "id_contract", 'c'),
 };
 
 pub fn cli() -> Command {
@@ -94,6 +98,19 @@ pub fn cli() -> Command {
                             .id(ALL_COMMANDS.arg_waypoint.1)
                             .short(ALL_COMMANDS.arg_waypoint.2)
                             .long(ALL_COMMANDS.arg_waypoint.0)
+                            .action(ArgAction::Set)
+                    )
+            )
+            // check contracts
+            .subcommand(
+                Command::new(ALL_COMMANDS.sc_contract)
+                    .about("View a contract. Defaults to viewing all given contracts.")
+                    .arg(
+                        Arg::new(ALL_COMMANDS.arg_contract.0)
+                            .help("The contract to check. E.g., clhzd3zrx1sufs60dc58k5vyj")
+                            .id(ALL_COMMANDS.arg_contract.1)
+                            .short(ALL_COMMANDS.arg_contract.2)
+                            .long(ALL_COMMANDS.arg_contract.0)
                             .action(ArgAction::Set)
                     )
             )
