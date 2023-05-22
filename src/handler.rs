@@ -32,9 +32,10 @@ pub async fn process_command(
             return view_location(api, game_status, sub_matches).await;
         }
 
-        // Some(("contract", sub_matches)) => {
-        //     return view_contract(api, game_status, sub_matches).await;
-        // }
+        Some(("contract", sub_matches)) => {
+            return view_contract(api, game_status, sub_matches).await;
+        }
+
         _ => Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             "No command found.",
@@ -201,4 +202,20 @@ pub async fn view_location(
             }
         }
     }
+}
+
+pub async fn view_contract(
+    api: api::TradersApi,
+    game_status: &HashMap<String, String>,
+    _sub_matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Check if token is present
+    if !status::check_local_token(game_status) {
+        return hlp::no_token_error();
+    }
+
+    // Get contract data
+    println!("Getting data for all your contracts...");
+    let _ = api.all_contracts_req(game_status).await;
+    return Ok(());
 }
