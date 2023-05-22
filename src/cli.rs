@@ -100,6 +100,7 @@ pub fn cli() -> Command {
                             .long(ALL_COMMANDS.arg_waypoint.0)
                             .action(ArgAction::Set)
                     )
+                    // TODO: add flag and request to view system
             )
             // check contracts
             .subcommand(
