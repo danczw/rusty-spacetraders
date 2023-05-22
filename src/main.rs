@@ -1,9 +1,10 @@
 pub mod api;
-pub mod commands;
+pub mod cli;
+pub mod handler;
 pub mod utils;
 
-use crate::api::process_command;
-use crate::commands::cli;
+use crate::cli::cli;
+use crate::handler::process_command;
 use crate::utils::status;
 use colored::*;
 use std::process::exit;

@@ -3,8 +3,8 @@ use colored::*;
 use std::collections::HashMap;
 use std::io;
 
+use crate::api::api;
 use crate::utils::helpers as hlp;
-use crate::utils::request as req;
 use crate::utils::status;
 
 pub async fn process_command(
@@ -12,7 +12,7 @@ pub async fn process_command(
     game_status: &mut HashMap<String, String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // initialize TradersApi struct for API calls
-    let api = req::get_traders_api();
+    let api = api::get_traders_api();
 
     // match subcommands and call api functions
     match matches.subcommand() {
@@ -32,6 +32,9 @@ pub async fn process_command(
             return view_location(api, game_status, sub_matches).await;
         }
 
+        // Some(("contract", sub_matches)) => {
+        //     return view_contract(api, game_status, sub_matches).await;
+        // }
         _ => Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             "No command found.",
@@ -40,7 +43,7 @@ pub async fn process_command(
 }
 
 pub async fn get_status(
-    api: req::TradersApi,
+    api: api::TradersApi,
     game_status: &HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -86,7 +89,7 @@ pub async fn get_status(
 }
 
 pub async fn register_new_agent(
-    api: req::TradersApi,
+    api: api::TradersApi,
     game_status: &mut HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -99,7 +102,7 @@ pub async fn register_new_agent(
 }
 
 pub async fn login_agent(
-    api: req::TradersApi,
+    api: api::TradersApi,
     game_status: &mut HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -148,7 +151,7 @@ pub async fn login_agent(
 }
 
 pub async fn view_location(
-    api: req::TradersApi,
+    api: api::TradersApi,
     game_status: &HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
