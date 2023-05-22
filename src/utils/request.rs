@@ -111,7 +111,13 @@ impl TradersApi {
         // check if is error
         if resp_value["data"]["agent"]["symbol"] == callsign.to_uppercase() {
             game_status.insert("callsign".to_string(), callsign.to_string());
-            game_status.insert("token".to_string(), resp_value["data"]["token"].to_string());
+            game_status.insert(
+                "token".to_string(),
+                resp_value["data"]["token"]
+                    .to_string()
+                    .trim_matches('"')
+                    .to_string(),
+            );
             println!("Registered new agent '{}'.", callsign);
             println!("{:#?}", resp_value);
             return Ok(());
