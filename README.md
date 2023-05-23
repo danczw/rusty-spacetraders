@@ -1,6 +1,9 @@
 # Rusty SpaceTraders CLI
 
-A command line interface for the [SpaceTraders](https://spacetraders.io/) game, written in **rust**.
+**! Alpha Version !**
+
+A command line interface for the [SpaceTraders](https://spacetraders.io/) game, written in rust.
+
 Currently, learning the **rust** programming language by playing the [SpaceTraders](https://spacetraders.io/) game.
 
 ---
