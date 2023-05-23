@@ -16,7 +16,7 @@ pub fn get_traders_api() -> TradersApi {
         api_url_root: "https://api.spacetraders.io/v2/".to_string(),
         api_suburl_register: "register".to_string(),
         api_suburl_status: "my/agent".to_string(),
-        api_suburl_location: "systems/".to_string(),
+        api_suburl_location: "systems".to_string(),
         api_suburl_contracts: "my/contracts".to_string(),
     }
 }
@@ -85,7 +85,6 @@ impl TradersApi {
                 ),
             )));
         } else {
-            // TODO: better handle other errors
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
@@ -137,7 +136,6 @@ impl TradersApi {
                 ),
             )));
         } else {
-            // TODO: better handle other errors
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
@@ -148,7 +146,7 @@ impl TradersApi {
         }
     }
 
-    pub async fn location_req(
+    pub async fn loc_waypoint_req(
         &self,
         game_status: &HashMap<String, String>,
         sys_waypoint_tup: (String, String),
@@ -162,6 +160,7 @@ impl TradersApi {
             sys_waypoint_tup.1
         );
 
+        // Get waypoint data from Space Traders
         let client: Client = reqwest::Client::new();
         let resp_text = client
             .get(url)
@@ -178,7 +177,7 @@ impl TradersApi {
 
         // check if is error
         if resp_value["data"]["symbol"].is_string() {
-            println!("{:#?}", resp_value);
+            println!("{:#?}", resp_value["data"]);
             return Ok(());
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
@@ -189,11 +188,61 @@ impl TradersApi {
                 ),
             )));
         } else {
-            // TODO: better handle other errors
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
                     "Error getting waypoint data due to unforeseen reason - {}",
+                    resp_value["error"]["message"]
+                ),
+            )));
+        }
+    }
+
+    pub async fn loc_system_req(
+        &self,
+        game_status: &HashMap<String, String>,
+        sys_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Build url
+        let url = format!(
+            "{}{}/{}/waypoints",
+            self.api_url_root(),
+            self.api_suburl_location(),
+            sys_name
+        );
+
+        // Get system data from Space Traders
+        let client: Client = reqwest::Client::new();
+        let resp_text = client
+            .get(url)
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                "Bearer ".to_owned() + game_status.get("token").unwrap(),
+            )
+            .send()
+            .await?
+            .text()
+            .await?;
+        let resp_value: Value = serde_json::from_str(&resp_text)?;
+
+        // check if is error
+        if resp_value["data"].is_array() {
+            println!("{:#?}", resp_value["data"]);
+            return Ok(());
+        } else if resp_value["error"]["code"].is_number() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Error getting location - {}",
+                    resp_value["error"]["message"]
+                ),
+            )));
+        } else {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Error getting system data due to unforeseen reason - {}",
                     resp_value["error"]["message"]
                 ),
             )));
@@ -233,7 +282,6 @@ impl TradersApi {
                 ),
             )));
         } else {
-            // TODO: better handle other errors
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(

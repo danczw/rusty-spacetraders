@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io;
 
 use crate::api::api;
+use crate::cli::ALL_COMMANDS;
 use crate::utils::helpers as hlp;
 use crate::utils::status;
 
@@ -49,7 +50,7 @@ pub async fn get_status(
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Check if local or remote status is requested
-    if sub_matches.get_flag("id_local") {
+    if sub_matches.get_flag(ALL_COMMANDS.arg_local.1) {
         println!("Getting local status...");
         println!(
             "{} {}",
@@ -62,7 +63,9 @@ pub async fn get_status(
             game_status.get("token").unwrap()
         );
         Ok(())
-    } else if sub_matches.get_flag("id_remote") || !sub_matches.get_flag("id_local") {
+    } else if sub_matches.get_flag(ALL_COMMANDS.arg_remote.1)
+        || !sub_matches.get_flag(ALL_COMMANDS.arg_local.1)
+    {
         // Check if token is present
         if !status::check_local_token(game_status) {
             return hlp::no_token_error();
@@ -98,7 +101,9 @@ pub async fn register_new_agent(
     status::overwrite_status_consent(game_status);
 
     // Get callsign from command line argument and register new agent
-    let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
+    let callsign = sub_matches
+        .get_one::<String>(ALL_COMMANDS.arg_callsign.1)
+        .unwrap();
     return api.reg_agent_req(game_status, callsign).await;
 }
 
@@ -128,7 +133,9 @@ pub async fn login_agent(
     println!("Logging in...");
 
     // Get callsign from command line argument
-    let callsign = sub_matches.get_one::<String>("id_callsign").unwrap();
+    let callsign = sub_matches
+        .get_one::<String>(ALL_COMMANDS.arg_callsign.1)
+        .unwrap();
 
     // Update local status and get remote status
     let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
@@ -161,16 +168,28 @@ pub async fn view_location(
         return hlp::no_token_error();
     }
 
-    if sub_matches.contains_id("id_waypoint") {
+    if sub_matches.contains_id(ALL_COMMANDS.arg_waypoint.1) {
         // Get waypoint location from command line argument
-        let location_passed = sub_matches.get_one::<String>("id_waypoint").unwrap();
-        println!("Getting data for waypoint {}...", location_passed);
+        let waypoint_passed = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_waypoint.1)
+            .unwrap();
+        println!("Getting data for waypoint {}...", waypoint_passed);
 
         // Divide provided location into system and waypoint coords
-        let sys_waypoint_tup = hlp::location_split(location_passed);
+        let sys_waypoint_tup = hlp::location_split(waypoint_passed);
 
         // Get waypoint data
-        let _ = api.location_req(game_status, sys_waypoint_tup).await;
+        let _ = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
+        return Ok(());
+    } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
+        // Get system location from command line argument
+        let system_passed = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_system.1)
+            .unwrap();
+        println!("Getting data for system {}...", system_passed);
+
+        // Get system data
+        let _ = api.loc_system_req(game_status, system_passed).await;
         return Ok(());
     } else {
         println!("Getting data for headquarter waypoint...");
@@ -190,7 +209,7 @@ pub async fn view_location(
                 let sys_waypoint_tup = hlp::location_split(&hq_location);
 
                 // Get waypoint data
-                let _ = api.location_req(game_status, sys_waypoint_tup).await;
+                let _ = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
                 return Ok(());
             }
             Err(status_req_result) => {
