@@ -2,25 +2,26 @@ use clap::{Arg, ArgAction, Command};
 
 // define the command strings with a static str for each command
 // and a tuple for each Argument: (name/long, id, short)
-struct CommandStrings {
+pub struct CommandStrings {
     // subcommands
-    sc_status: &'static str,
-    sc_new: &'static str,
-    sc_login: &'static str,
-    sc_location: &'static str,
-    sc_contract: &'static str,
+    pub sc_new: &'static str,
+    pub sc_login: &'static str,
+    pub sc_status: &'static str,
+    pub sc_location: &'static str,
+    pub sc_contract: &'static str,
     // Args
-    arg_local: (&'static str, &'static str, char),
-    arg_remote: (&'static str, &'static str, char),
-    arg_callsign: (&'static str, &'static str, char),
-    arg_waypoint: (&'static str, &'static str, char),
+    pub arg_local: (&'static str, &'static str, char),
+    pub arg_remote: (&'static str, &'static str, char),
+    pub arg_callsign: (&'static str, &'static str, char),
+    pub arg_waypoint: (&'static str, &'static str, char),
+    pub arg_system: (&'static str, &'static str, char),
 }
 
-static ALL_COMMANDS: CommandStrings = CommandStrings {
+pub static ALL_COMMANDS: CommandStrings = CommandStrings {
     // subcommands
-    sc_status: "status",
     sc_new: "new",
     sc_login: "login",
+    sc_status: "status",
     sc_location: "location",
     sc_contract: "contract",
     // Args
@@ -28,6 +29,7 @@ static ALL_COMMANDS: CommandStrings = CommandStrings {
     arg_remote: ("remote", "id_remote", 'r'),
     arg_callsign: ("callsign", "id_callsign", 'c'),
     arg_waypoint: ("waypoint", "id_waypoint", 'w'),
+    arg_system: ("system", "id_system", 's'),
 };
 
 pub fn cli() -> Command {
@@ -97,8 +99,17 @@ pub fn cli() -> Command {
                             .short(ALL_COMMANDS.arg_waypoint.2)
                             .long(ALL_COMMANDS.arg_waypoint.0)
                             .action(ArgAction::Set)
+                            .exclusive(true)
                     )
-                    // TODO: add flag and request to view system
+                    .arg(
+                        Arg::new(ALL_COMMANDS.arg_system.0)
+                            .help("The system to check. E.g., X1-VS75")
+                            .id(ALL_COMMANDS.arg_system.1)
+                            .short(ALL_COMMANDS.arg_system.2)
+                            .long(ALL_COMMANDS.arg_system.0)
+                            .action(ArgAction::Set)
+                            .exclusive(true)
+                    )
             )
             // check contracts
             .subcommand(
