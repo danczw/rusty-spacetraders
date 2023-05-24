@@ -150,7 +150,7 @@ impl TradersApi {
         &self,
         game_status: &HashMap<String, String>,
         sys_waypoint_tup: (String, String),
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
         let url = format!(
             "{}{}/{}/waypoints/{}",
@@ -177,8 +177,7 @@ impl TradersApi {
 
         // check if is error
         if resp_value["data"]["symbol"].is_string() {
-            println!("{:#?}", resp_value["data"]);
-            return Ok(());
+            return Ok(resp_value);
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -202,7 +201,7 @@ impl TradersApi {
         &self,
         game_status: &HashMap<String, String>,
         sys_name: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
         let url = format!(
             "{}{}/{}/waypoints",
@@ -228,8 +227,7 @@ impl TradersApi {
 
         // check if is error
         if resp_value["data"].is_array() {
-            println!("{:#?}", resp_value["data"]);
-            return Ok(());
+            return Ok(resp_value);
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -249,12 +247,26 @@ impl TradersApi {
         }
     }
 
-    pub async fn all_contracts_req(
+    pub async fn contract_req(
         &self,
         game_status: &HashMap<String, String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        contract_id: Option<&String>,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
-        let url = format!("{}{}", self.api_url_root(), self.api_suburl_contracts());
+        let url: String;
+        match contract_id {
+            None => {
+                url = format!("{}{}", self.api_url_root(), self.api_suburl_contracts());
+            }
+            Some(id) => {
+                url = format!(
+                    "{}{}/{}",
+                    self.api_url_root(),
+                    self.api_suburl_contracts(),
+                    id
+                );
+            }
+        }
 
         let client: Client = reqwest::Client::new();
         let resp_text = client
@@ -270,9 +282,8 @@ impl TradersApi {
             .await?;
         let resp_value: Value = serde_json::from_str(&resp_text)?;
 
-        if resp_value["data"].is_array() {
-            println!("{:#?}", resp_value);
-            return Ok(());
+        if resp_value["data"].is_object() || resp_value["data"].is_array() {
+            return Ok(resp_value);
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -285,8 +296,8 @@ impl TradersApi {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!(
-                    "Error getting waypoint data due to unforeseen reason - {}",
-                    resp_value["error"]["message"]
+                    "Error getting contract data due to unforeseen reason - {}",
+                    resp_value
                 ),
             )));
         }

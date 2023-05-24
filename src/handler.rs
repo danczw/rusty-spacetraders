@@ -179,8 +179,21 @@ pub async fn view_location(
         let sys_waypoint_tup = hlp::location_split(waypoint_passed);
 
         // Get waypoint data
-        let _ = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
-        return Ok(());
+        let loc_req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
+
+        match loc_req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
         // Get system location from command line argument
         let system_passed = sub_matches
@@ -189,8 +202,44 @@ pub async fn view_location(
         println!("Getting data for system {}...", system_passed);
 
         // Get system data
-        let _ = api.loc_system_req(game_status, system_passed).await;
-        return Ok(());
+        let loc_req_result = api.loc_system_req(game_status, system_passed).await;
+
+        match loc_req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
+    } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
+        // Get system location from command line argument
+        let system_passed = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_system.1)
+            .unwrap();
+        println!("Getting data for system {}...", system_passed);
+
+        // Get system data
+        let req_result = api.loc_system_req(game_status, system_passed).await;
+
+        match req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
     } else {
         println!("Getting data for headquarter waypoint...");
         // Get remote status
@@ -209,8 +258,22 @@ pub async fn view_location(
                 let sys_waypoint_tup = hlp::location_split(&hq_location);
 
                 // Get waypoint data
-                let _ = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
-                return Ok(());
+                let loc_req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
+
+                match loc_req_result {
+                    Ok(req_result) => {
+                        println!("{}", "Contract data:".green());
+                        println!("{:#?}", req_result["data"]);
+                        return Ok(());
+                    }
+                    Err(req_result) => {
+                        let req_result_err_msg = req_result.to_string();
+                        return Err(Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            req_result_err_msg,
+                        )));
+                    }
+                }
             }
             Err(status_req_result) => {
                 let status_req_result_err_msg = status_req_result.to_string();
@@ -226,15 +289,53 @@ pub async fn view_location(
 pub async fn view_contract(
     api: api::TradersApi,
     game_status: &HashMap<String, String>,
-    _sub_matches: &ArgMatches,
+    sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Check if token is present
     if !status::check_local_token(game_status) {
         return hlp::no_token_error();
     }
 
-    // Get contract data
-    println!("Getting data for all your contracts...");
-    let _ = api.all_contracts_req(game_status).await;
-    return Ok(());
+    if sub_matches.contains_id(ALL_COMMANDS.arg_id.1) {
+        // Get contract id from command line argument
+        let contract_id = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_id.1)
+            .unwrap();
+        println!("Getting data for contract {}...", contract_id);
+
+        // Get contract data
+        let req_result = api.contract_req(game_status, Some(contract_id)).await;
+
+        match req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
+    } else {
+        // Get all contracts data
+        println!("Getting data for all your contracts...");
+        let req_result = api.contract_req(game_status, None).await;
+
+        match req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
+    }
 }
