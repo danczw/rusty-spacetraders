@@ -189,6 +189,16 @@ pub async fn view_location(
         println!("Getting data for system {}...", system_passed);
 
         // Get system data
+        let _ = api.loc_system_req(game_status, system_passed).await;
+        return Ok(());
+    } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
+        // Get system location from command line argument
+        let system_passed = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_system.1)
+            .unwrap();
+        println!("Getting data for system {}...", system_passed);
+
+        // Get system data
         let req_result = api.loc_system_req(game_status, system_passed).await;
 
         match req_result {
