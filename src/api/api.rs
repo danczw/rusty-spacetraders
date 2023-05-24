@@ -1,4 +1,4 @@
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -46,6 +46,44 @@ impl TradersApi {
     pub fn api_suburl_contracts(&self) -> &str {
         &self.api_suburl_contracts
     }
+
+    // Response checker: check response status and returns appropriate data or error
+    pub async fn check_response(
+        &self,
+        response: reqwest::Response,
+        error_msg: &str,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
+        // Get response status
+        let resp_status = response.status();
+
+        // Get response text
+        let resp_text = response.text().await?;
+
+        // Deserialize response text
+        let resp_value: Value = serde_json::from_str(&resp_text)?;
+
+        // check response
+        match resp_status {
+            StatusCode::OK => {
+                return Ok(resp_value);
+            }
+            StatusCode::CREATED => {
+                return Ok(resp_value);
+            }
+            _ => {
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!(
+                        "{} - {}",
+                        error_msg,
+                        resp_value["error"]["message"]
+                            .to_string()
+                            .replace("\\\"", "")
+                    ),
+                )));
+            }
+        }
+    }
 }
 
 impl TradersApi {
@@ -66,40 +104,15 @@ impl TradersApi {
                 "Bearer ".to_owned() + game_status.get("token").unwrap(),
             )
             .send()
-            .await?
-            .text()
             .await?;
-        let resp_value: Value = serde_json::from_str(&resp)?;
 
         // check response
-        if resp_value["data"]["symbol"].is_string() {
-            return Ok(resp_value);
-        } else if resp_value["error"]["code"].is_number() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting remote status - {}",
-                    resp_value["error"]["message"]
-                        .to_string()
-                        .replace("\\\"", "")
-                ),
-            )));
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting remote status due to unforeseen reason - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        }
+        return self
+            .check_response(resp, "Error getting remote status")
+            .await;
     }
 
-    pub async fn reg_agent_req(
-        &self,
-        game_status: &mut HashMap<String, String>,
-        callsign: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn reg_agent_req(&self, callsign: &str) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
         let url = format!("{}{}", self.api_url_root(), self.api_suburl_register());
 
@@ -109,41 +122,18 @@ impl TradersApi {
         map.insert("faction", "COSMIC");
 
         let client: Client = reqwest::Client::new();
-        let resp_text = client.post(url).json(&map).send().await?.text().await?;
+        let resp = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .json(&map)
+            .send()
+            .await?;
 
-        // deserialize response
-        let resp_value: Value = serde_json::from_str(&resp_text)?;
-
-        // check if is error
-        if resp_value["data"]["agent"]["symbol"] == callsign.to_uppercase() {
-            game_status.insert("callsign".to_string(), callsign.to_string());
-            game_status.insert(
-                "token".to_string(),
-                resp_value["data"]["token"]
-                    .to_string()
-                    .trim_matches('"')
-                    .to_string(),
-            );
-            println!("Registered new agent '{}'.", callsign);
-            println!("{:#?}", resp_value);
-            return Ok(());
-        } else if resp_value["error"]["code"].is_number() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Failed to register new agent '{}': {}",
-                    callsign, resp_value["error"]["data"]["symbol"][0]
-                ),
-            )));
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error registering new agent {} due to unforeseen reason - {}",
-                    callsign, resp_value["error"]["message"]
-                ),
-            )));
-        }
+        // check response
+        return self
+            .check_response(resp, "Error registering new agent")
+            .await;
     }
 
     pub async fn loc_waypoint_req(
@@ -162,7 +152,7 @@ impl TradersApi {
 
         // Get waypoint data from Space Traders
         let client: Client = reqwest::Client::new();
-        let resp_text = client
+        let resp = client
             .get(url)
             .header("Content-Type", "application/json")
             .header(
@@ -170,31 +160,12 @@ impl TradersApi {
                 "Bearer ".to_owned() + game_status.get("token").unwrap(),
             )
             .send()
-            .await?
-            .text()
             .await?;
-        let resp_value: Value = serde_json::from_str(&resp_text)?;
 
-        // check if is error
-        if resp_value["data"]["symbol"].is_string() {
-            return Ok(resp_value);
-        } else if resp_value["error"]["code"].is_number() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting location - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting waypoint data due to unforeseen reason - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        }
+        // Check response
+        return self
+            .check_response(resp, "Error getting waypoint data")
+            .await;
     }
 
     pub async fn loc_system_req(
@@ -212,7 +183,7 @@ impl TradersApi {
 
         // Get system data from Space Traders
         let client: Client = reqwest::Client::new();
-        let resp_text = client
+        let resp = client
             .get(url)
             .header("Content-Type", "application/json")
             .header(
@@ -220,31 +191,10 @@ impl TradersApi {
                 "Bearer ".to_owned() + game_status.get("token").unwrap(),
             )
             .send()
-            .await?
-            .text()
             .await?;
-        let resp_value: Value = serde_json::from_str(&resp_text)?;
 
-        // check if is error
-        if resp_value["data"].is_array() {
-            return Ok(resp_value);
-        } else if resp_value["error"]["code"].is_number() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting location - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting system data due to unforeseen reason - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        }
+        // Check response
+        return self.check_response(resp, "Error getting system data").await;
     }
 
     pub async fn contract_req(
@@ -277,29 +227,11 @@ impl TradersApi {
                 "Bearer ".to_owned() + game_status.get("token").unwrap(),
             )
             .send()
-            .await?
-            .text()
             .await?;
-        let resp_value: Value = serde_json::from_str(&resp_text)?;
 
-        if resp_value["data"].is_object() || resp_value["data"].is_array() {
-            return Ok(resp_value);
-        } else if resp_value["error"]["code"].is_number() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting all contracts - {}",
-                    resp_value["error"]["message"]
-                ),
-            )));
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Error getting contract data due to unforeseen reason - {}",
-                    resp_value
-                ),
-            )));
-        }
+        // Check response
+        return self
+            .check_response(resp_text, "Error getting contract data")
+            .await;
     }
 }
