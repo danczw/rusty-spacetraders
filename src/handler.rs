@@ -104,7 +104,30 @@ pub async fn register_new_agent(
     let callsign = sub_matches
         .get_one::<String>(ALL_COMMANDS.arg_callsign.1)
         .unwrap();
-    return api.reg_agent_req(game_status, callsign).await;
+    let req_resp = api.reg_agent_req(callsign).await;
+
+    match req_resp {
+        Ok(resp_value) => {
+            game_status.insert("callsign".to_string(), callsign.to_string());
+            game_status.insert(
+                "token".to_string(),
+                resp_value["data"]["token"]
+                    .to_string()
+                    .trim_matches('"')
+                    .to_string(),
+            );
+            println!("Registered new agent '{}'.", callsign);
+            println!("{:#?}", resp_value);
+            return Ok(());
+        }
+        Err(req_result) => {
+            let req_result_err_msg = req_result.to_string();
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                req_result_err_msg,
+            )));
+        }
+    }
 }
 
 pub async fn login_agent(
