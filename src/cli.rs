@@ -15,6 +15,7 @@ pub struct CommandStrings {
     pub arg_callsign: (&'static str, &'static str, char),
     pub arg_waypoint: (&'static str, &'static str, char),
     pub arg_system: (&'static str, &'static str, char),
+    pub arg_id: (&'static str, &'static str, char),
 }
 
 pub static ALL_COMMANDS: CommandStrings = CommandStrings {
@@ -30,6 +31,7 @@ pub static ALL_COMMANDS: CommandStrings = CommandStrings {
     arg_callsign: ("callsign", "id_callsign", 'c'),
     arg_waypoint: ("waypoint", "id_waypoint", 'w'),
     arg_system: ("system", "id_system", 's'),
+    arg_id: ("id", "id_id", 'i'),
 };
 
 pub fn cli() -> Command {
@@ -73,6 +75,8 @@ pub fn cli() -> Command {
                             .required(true)
                     )
                     .arg_required_else_help(true),
+                    // TODO: add flag for faction and email:
+                    // https://spacetraders.stoplight.io/docs/spacetraders/86ed6bbe4f5d7-register-new-agent
             )
             // manually set local game status
             .subcommand(
@@ -114,6 +118,14 @@ pub fn cli() -> Command {
             // check contracts
             .subcommand(
                 Command::new(ALL_COMMANDS.sc_contract)
-                    .about("View a contract. Defaults to viewing all given contracts.")
+                    .about("View contracts. Defaults to viewing all given contracts.")
+                    .arg(
+                        Arg::new(ALL_COMMANDS.arg_id.0)
+                            .help("The contract id to check. E.g., clhzd3zrx1sufs60dc58k5vyj")
+                            .id(ALL_COMMANDS.arg_id.1)
+                            .short(ALL_COMMANDS.arg_id.2)
+                            .long(ALL_COMMANDS.arg_id.0)
+                            .action(ArgAction::Set)
+                    )
             )
 }
