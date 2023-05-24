@@ -179,8 +179,21 @@ pub async fn view_location(
         let sys_waypoint_tup = hlp::location_split(waypoint_passed);
 
         // Get waypoint data
-        let _ = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
-        return Ok(());
+        let loc_req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
+
+        match loc_req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
         // Get system location from command line argument
         let system_passed = sub_matches
@@ -189,8 +202,21 @@ pub async fn view_location(
         println!("Getting data for system {}...", system_passed);
 
         // Get system data
-        let _ = api.loc_system_req(game_status, system_passed).await;
-        return Ok(());
+        let loc_req_result = api.loc_system_req(game_status, system_passed).await;
+
+        match loc_req_result {
+            Ok(req_result) => {
+                println!("{:#?}", req_result["data"]);
+                return Ok(());
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )));
+            }
+        }
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
         // Get system location from command line argument
         let system_passed = sub_matches
@@ -203,7 +229,6 @@ pub async fn view_location(
 
         match req_result {
             Ok(req_result) => {
-                println!("{}", "Contract data:".green());
                 println!("{:#?}", req_result["data"]);
                 return Ok(());
             }
@@ -283,7 +308,6 @@ pub async fn view_contract(
 
         match req_result {
             Ok(req_result) => {
-                println!("{}", "Contract data:".green());
                 println!("{:#?}", req_result["data"]);
                 return Ok(());
             }
@@ -302,7 +326,6 @@ pub async fn view_contract(
 
         match req_result {
             Ok(req_result) => {
-                println!("{}", "Contract data:".green());
                 println!("{:#?}", req_result["data"]);
                 return Ok(());
             }

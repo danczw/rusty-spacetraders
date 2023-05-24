@@ -282,7 +282,7 @@ impl TradersApi {
             .await?;
         let resp_value: Value = serde_json::from_str(&resp_text)?;
 
-        if resp_value["data"].is_object() {
+        if resp_value["data"].is_object() || resp_value["data"].is_array() {
             return Ok(resp_value);
         } else if resp_value["error"]["code"].is_number() {
             return Err(Box::new(std::io::Error::new(
@@ -297,7 +297,7 @@ impl TradersApi {
                 std::io::ErrorKind::Other,
                 format!(
                     "Error getting contract data due to unforeseen reason - {}",
-                    resp_value["error"]["message"]
+                    resp_value
                 ),
             )));
         }
