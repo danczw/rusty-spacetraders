@@ -10,7 +10,7 @@ use colored::*;
 use std::process::exit;
 
 #[tokio::main]
-async fn main() -> () {
+async fn main() {
     // parse command line arguments
     let matches = cli().get_matches();
 

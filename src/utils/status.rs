@@ -16,7 +16,7 @@ pub fn read_game(game_file_path: &PathBuf) -> HashMap<String, String> {
     // Parse game  to HashMap
     let mut game_status: HashMap<String, String> = HashMap::new();
     for line in saved.lines() {
-        let mut line_iter = line.split("=");
+        let mut line_iter = line.split('=');
         let key = line_iter.next().unwrap_or("").to_string();
         let value = line_iter.next().unwrap_or("").to_string();
         game_status.insert(key, value);
