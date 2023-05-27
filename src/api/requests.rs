@@ -64,24 +64,18 @@ impl TradersApi {
 
         // check response
         match resp_status {
-            StatusCode::OK => {
-                return Ok(resp_value);
-            }
-            StatusCode::CREATED => {
-                return Ok(resp_value);
-            }
-            _ => {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "{} - {}",
-                        error_msg,
-                        resp_value["error"]["message"]
-                            .to_string()
-                            .replace("\\\"", "")
-                    ),
-                )));
-            }
+            StatusCode::OK => Ok(resp_value),
+            StatusCode::CREATED => Ok(resp_value),
+            _ => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "{} - {}",
+                    error_msg,
+                    resp_value["error"]["message"]
+                        .to_string()
+                        .replace("\\\"", "")
+                ),
+            ))),
         }
     }
 }
@@ -107,9 +101,8 @@ impl TradersApi {
             .await?;
 
         // check response
-        return self
-            .check_response(resp, "Error getting remote status")
-            .await;
+        self.check_response(resp, "Error getting remote status")
+            .await
     }
 
     pub async fn reg_agent_req(&self, callsign: &str) -> Result<Value, Box<dyn std::error::Error>> {
@@ -131,9 +124,8 @@ impl TradersApi {
             .await?;
 
         // check response
-        return self
-            .check_response(resp, "Error registering new agent")
-            .await;
+        self.check_response(resp, "Error registering new agent")
+            .await
     }
 
     pub async fn loc_waypoint_req(
@@ -163,9 +155,8 @@ impl TradersApi {
             .await?;
 
         // Check response
-        return self
-            .check_response(resp, "Error getting waypoint data")
-            .await;
+        self.check_response(resp, "Error getting waypoint data")
+            .await
     }
 
     pub async fn loc_system_req(
@@ -194,7 +185,7 @@ impl TradersApi {
             .await?;
 
         // Check response
-        return self.check_response(resp, "Error getting system data").await;
+        self.check_response(resp, "Error getting system data").await
     }
 
     pub async fn contract_req(
@@ -203,20 +194,19 @@ impl TradersApi {
         contract_id: Option<&String>,
     ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
-        let url: String;
-        match contract_id {
+        let url: String = match contract_id {
             None => {
-                url = format!("{}{}", self.api_url_root(), self.api_suburl_contracts());
+                format!("{}{}", self.api_url_root(), self.api_suburl_contracts())
             }
             Some(id) => {
-                url = format!(
+                format!(
                     "{}{}/{}",
                     self.api_url_root(),
                     self.api_suburl_contracts(),
                     id
-                );
+                )
             }
-        }
+        };
 
         let client: Client = reqwest::Client::new();
         let resp_text = client
@@ -230,8 +220,7 @@ impl TradersApi {
             .await?;
 
         // Check response
-        return self
-            .check_response(resp_text, "Error getting contract data")
-            .await;
+        self.check_response(resp_text, "Error getting contract data")
+            .await
     }
 }

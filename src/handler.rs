@@ -3,7 +3,7 @@ use colored::*;
 use std::collections::HashMap;
 use std::io;
 
-use crate::api::api;
+use crate::api::requests;
 use crate::cli::ALL_COMMANDS;
 use crate::utils::helpers as hlp;
 use crate::utils::status;
@@ -13,29 +13,15 @@ pub async fn process_command(
     game_status: &mut HashMap<String, String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // initialize TradersApi struct for API calls
-    let api = api::get_traders_api();
+    let api = requests::get_traders_api();
 
     // match subcommands and call api functions
     match matches.subcommand() {
-        Some(("status", sub_matches)) => {
-            return get_status(api, game_status, sub_matches).await;
-        }
-
-        Some(("new", sub_matches)) => {
-            return register_new_agent(api, game_status, sub_matches).await;
-        }
-
-        Some(("login", sub_matches)) => {
-            return login_agent(api, game_status, sub_matches).await;
-        }
-
-        Some(("location", sub_matches)) => {
-            return view_location(api, game_status, sub_matches).await;
-        }
-
-        Some(("contract", sub_matches)) => {
-            return view_contract(api, game_status, sub_matches).await;
-        }
+        Some(("status", sub_matches)) => get_status(api, game_status, sub_matches).await,
+        Some(("new", sub_matches)) => register_new_agent(api, game_status, sub_matches).await,
+        Some(("login", sub_matches)) => login_agent(api, game_status, sub_matches).await,
+        Some(("location", sub_matches)) => view_location(api, game_status, sub_matches).await,
+        Some(("contract", sub_matches)) => view_contract(api, game_status, sub_matches).await,
 
         _ => Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -45,7 +31,7 @@ pub async fn process_command(
 }
 
 pub async fn get_status(
-    api: api::TradersApi,
+    api: requests::TradersApi,
     game_status: &HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -72,7 +58,7 @@ pub async fn get_status(
         }
 
         println!("Getting remote status...");
-        let req_result = api.remote_status_req(&game_status).await;
+        let req_result = api.remote_status_req(game_status).await;
         if req_result.is_ok() {
             println!("{:#?}", req_result.unwrap()["data"]);
             return Ok(());
@@ -93,7 +79,7 @@ pub async fn get_status(
 }
 
 pub async fn register_new_agent(
-    api: api::TradersApi,
+    api: requests::TradersApi,
     game_status: &mut HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -118,20 +104,20 @@ pub async fn register_new_agent(
             );
             println!("Registered new agent '{}'.", callsign);
             println!("{:#?}", resp_value);
-            return Ok(());
+            Ok(())
         }
         Err(req_result) => {
             let req_result_err_msg = req_result.to_string();
-            return Err(Box::new(std::io::Error::new(
+            Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 req_result_err_msg,
-            )));
+            )))
         }
     }
 }
 
 pub async fn login_agent(
-    api: api::TradersApi,
+    api: requests::TradersApi,
     game_status: &mut HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -162,27 +148,27 @@ pub async fn login_agent(
 
     // Update local status and get remote status
     let game_status = status::reset_local_status(game_status, callsign.to_string(), token);
-    let req_result = api.remote_status_req(&game_status).await;
+    let req_result = api.remote_status_req(game_status).await;
 
     // Check if login was successful
     match req_result {
         Ok(_) => {
             println!("{}", "Login successful!".green());
             println!("{:#?}", req_result.unwrap()["data"]);
-            return Ok(());
+            Ok(())
         }
         Err(_) => {
             let req_result_err_msg = req_result.unwrap_err().to_string();
-            return Err(Box::new(std::io::Error::new(
+            Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 req_result_err_msg,
-            )));
+            )))
         }
     }
 }
 
 pub async fn view_location(
-    api: api::TradersApi,
+    api: requests::TradersApi,
     game_status: &HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -207,14 +193,14 @@ pub async fn view_location(
         match loc_req_result {
             Ok(req_result) => {
                 println!("{:#?}", req_result["data"]);
-                return Ok(());
+                Ok(())
             }
             Err(req_result) => {
                 let req_result_err_msg = req_result.to_string();
-                return Err(Box::new(std::io::Error::new(
+                Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     req_result_err_msg,
-                )));
+                )))
             }
         }
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
@@ -266,7 +252,7 @@ pub async fn view_location(
     } else {
         println!("Getting data for headquarter waypoint...");
         // Get remote status
-        let status_req_result = api.remote_status_req(&game_status).await;
+        let status_req_result = api.remote_status_req(game_status).await;
 
         // Check if location view request was successful
         match status_req_result {
@@ -310,7 +296,7 @@ pub async fn view_location(
 }
 
 pub async fn view_contract(
-    api: api::TradersApi,
+    api: requests::TradersApi,
     game_status: &HashMap<String, String>,
     sub_matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -332,14 +318,14 @@ pub async fn view_contract(
         match req_result {
             Ok(req_result) => {
                 println!("{:#?}", req_result["data"]);
-                return Ok(());
+                Ok(())
             }
             Err(req_result) => {
                 let req_result_err_msg = req_result.to_string();
-                return Err(Box::new(std::io::Error::new(
+                Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     req_result_err_msg,
-                )));
+                )))
             }
         }
     } else {
@@ -350,14 +336,14 @@ pub async fn view_contract(
         match req_result {
             Ok(req_result) => {
                 println!("{:#?}", req_result["data"]);
-                return Ok(());
+                Ok(())
             }
             Err(req_result) => {
                 let req_result_err_msg = req_result.to_string();
-                return Err(Box::new(std::io::Error::new(
+                Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     req_result_err_msg,
-                )));
+                )))
             }
         }
     }
