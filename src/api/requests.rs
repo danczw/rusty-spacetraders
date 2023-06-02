@@ -14,10 +14,10 @@ pub fn get_traders_api() -> TradersApi {
     // Initialize TradersApi struct with default values
     TradersApi {
         api_url_root: "https://api.spacetraders.io/v2/".to_string(),
-        api_suburl_register: "register".to_string(),
-        api_suburl_status: "my/agent".to_string(),
-        api_suburl_location: "systems".to_string(),
-        api_suburl_contracts: "my/contracts".to_string(),
+        api_suburl_register: "register/".to_string(),
+        api_suburl_status: "my/agent/".to_string(),
+        api_suburl_location: "systems/".to_string(),
+        api_suburl_contracts: "my/contracts/".to_string(),
     }
 }
 
@@ -135,7 +135,7 @@ impl TradersApi {
     ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
         let url = format!(
-            "{}{}/{}/waypoints/{}",
+            "{}{}{}/waypoints/{}",
             self.api_url_root(),
             self.api_suburl_location(),
             sys_waypoint_tup.0,
@@ -166,7 +166,7 @@ impl TradersApi {
     ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
         let url = format!(
-            "{}{}/{}/waypoints",
+            "{}{}{}/waypoints",
             self.api_url_root(),
             self.api_suburl_location(),
             sys_name
@@ -188,7 +188,7 @@ impl TradersApi {
         self.check_response(resp, "Error getting system data").await
     }
 
-    pub async fn contract_req(
+    pub async fn contract_data_req(
         &self,
         game_status: &HashMap<String, String>,
         contract_id: Option<&String>,
@@ -221,6 +221,74 @@ impl TradersApi {
 
         // Check response
         self.check_response(resp_text, "Error getting contract data")
+            .await
+    }
+
+    pub async fn contract_accept_req(
+        &self,
+        game_status: &HashMap<String, String>,
+        contract_id: &str,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
+        // Build url
+        let url = format!(
+            "{}{}/{}/accept",
+            self.api_url_root(),
+            self.api_suburl_contracts(),
+            contract_id
+        );
+
+        // Build empty map
+        let map: HashMap<&str, &str> = HashMap::new();
+
+        let client: Client = reqwest::Client::new();
+        let resp_text = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                "Bearer ".to_owned() + game_status.get("token").unwrap(),
+            )
+            .header("Accept", "application/json")
+            .json(&map)
+            .send()
+            .await?;
+
+        // Check response
+        self.check_response(resp_text, "Error accepting contract")
+            .await
+    }
+
+    pub async fn contract_fulfill_req(
+        &self,
+        game_status: &HashMap<String, String>,
+        contract_id: &str,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
+        // Build url
+        let url = format!(
+            "{}{}/{}/fulfill",
+            self.api_url_root(),
+            self.api_suburl_contracts(),
+            contract_id
+        );
+
+        // Build empty map
+        let map: HashMap<&str, &str> = HashMap::new();
+
+        let client: Client = reqwest::Client::new();
+        let resp_text = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                "Bearer ".to_owned() + game_status.get("token").unwrap(),
+            )
+            .header("Accept", "application/json")
+            .json(&map)
+            .send()
+            .await?;
+
+        // Check response
+        self.check_response(resp_text, "Error fulfilling contract")
             .await
     }
 }
