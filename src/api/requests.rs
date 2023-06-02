@@ -257,4 +257,38 @@ impl TradersApi {
         self.check_response(resp_text, "Error accepting contract")
             .await
     }
+
+    pub async fn contract_fulfill_req(
+        &self,
+        game_status: &HashMap<String, String>,
+        contract_id: &str,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
+        // Build url
+        let url = format!(
+            "{}{}/{}/fulfill",
+            self.api_url_root(),
+            self.api_suburl_contracts(),
+            contract_id
+        );
+
+        // Build empty map
+        let map: HashMap<&str, &str> = HashMap::new();
+
+        let client: Client = reqwest::Client::new();
+        let resp_text = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                "Bearer ".to_owned() + game_status.get("token").unwrap(),
+            )
+            .header("Accept", "application/json")
+            .json(&map)
+            .send()
+            .await?;
+
+        // Check response
+        self.check_response(resp_text, "Error fulfilling contract")
+            .await
+    }
 }

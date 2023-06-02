@@ -4,36 +4,38 @@ use clap::{Arg, ArgAction, Command};
 // and a tuple for each Argument: (name/long, id, short)
 pub struct CommandStrings {
     // subcommands
-    pub sc_new: &'static str,
-    pub sc_login: &'static str,
-    pub sc_status: &'static str,
-    pub sc_location: &'static str,
     pub sc_contract: &'static str,
+    pub sc_location: &'static str,
+    pub sc_login: &'static str,
+    pub sc_new: &'static str,
+    pub sc_status: &'static str,
     // Args
+    pub arg_accept: (&'static str, &'static str, char),
+    pub arg_callsign: (&'static str, &'static str, char),
+    pub arg_fulfill: (&'static str, &'static str, char),
+    pub arg_id: (&'static str, &'static str, char),
     pub arg_local: (&'static str, &'static str, char),
     pub arg_remote: (&'static str, &'static str, char),
-    pub arg_callsign: (&'static str, &'static str, char),
-    pub arg_waypoint: (&'static str, &'static str, char),
     pub arg_system: (&'static str, &'static str, char),
-    pub arg_id: (&'static str, &'static str, char),
-    pub arg_accept: (&'static str, &'static str, char),
+    pub arg_waypoint: (&'static str, &'static str, char),
 }
 
 pub static ALL_COMMANDS: CommandStrings = CommandStrings {
     // subcommands
-    sc_new: "new",
-    sc_login: "login",
-    sc_status: "status",
-    sc_location: "location",
     sc_contract: "contract",
+    sc_location: "location",
+    sc_login: "login",
+    sc_new: "new",
+    sc_status: "status",
     // Args
+    arg_accept: ("accept", "id_accept", 'a'),
+    arg_callsign: ("callsign", "id_callsign", 'c'),
+    arg_fulfill: ("fulfill", "id_fulfill", 'f'),
+    arg_id: ("id", "id_id", 'i'),
     arg_local: ("local", "id_local", 'l'),
     arg_remote: ("remote", "id_remote", 'r'),
-    arg_callsign: ("callsign", "id_callsign", 'c'),
-    arg_waypoint: ("waypoint", "id_waypoint", 'w'),
     arg_system: ("system", "id_system", 's'),
-    arg_id: ("id", "id_id", 'i'),
-    arg_accept: ("accept", "id_accept", 'a'),
+    arg_waypoint: ("waypoint", "id_waypoint", 'w'),
 };
 
 pub fn cli() -> Command {
@@ -120,7 +122,7 @@ pub fn cli() -> Command {
             // check contracts
             .subcommand(
                 Command::new(ALL_COMMANDS.sc_contract)
-                    .about("View contract details. Defaults to all given contracts to the agent.")
+                    .about("Interact with contracts. Defaults to view all contracts given to the agent.")
                     .arg(
                         Arg::new(ALL_COMMANDS.arg_id.0)
                             .help("The contract ID to view data for, e.g., clhzd3zrx1sufs60dc58k5vyj")
@@ -128,6 +130,7 @@ pub fn cli() -> Command {
                             .short(ALL_COMMANDS.arg_id.2)
                             .long(ALL_COMMANDS.arg_id.0)
                             .action(ArgAction::Set)
+                            .exclusive(true)
                     )
                     .arg(
                         Arg::new(ALL_COMMANDS.arg_accept.0)
@@ -136,6 +139,16 @@ pub fn cli() -> Command {
                             .short(ALL_COMMANDS.arg_accept.2)
                             .long(ALL_COMMANDS.arg_accept.0)
                             .action(ArgAction::Set)
+                            .exclusive(true)
+                    )
+                    .arg(
+                        Arg::new(ALL_COMMANDS.arg_fulfill.0)
+                            .help("The ID of a contract to fulfill, e.g., clhzd3zrx1sufs60dc58k5vyj")
+                            .id(ALL_COMMANDS.arg_fulfill.1)
+                            .short(ALL_COMMANDS.arg_fulfill.2)
+                            .long(ALL_COMMANDS.arg_fulfill.0)
+                            .action(ArgAction::Set)
+                            .exclusive(true)
                     )
             )
 }

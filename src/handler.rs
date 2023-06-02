@@ -305,6 +305,7 @@ pub async fn view_contract(
         return hlp::no_token_error();
     }
 
+    // match passed argument to argument id of ALL_COMMANDS and call appropriate function
     if sub_matches.contains_id(ALL_COMMANDS.arg_id.1) {
         // Get contract id from command line argument
         let contract_id = sub_matches
@@ -341,6 +342,30 @@ pub async fn view_contract(
         match req_result {
             Ok(req_result) => {
                 println!("Contract {} accepted!", contract_id);
+                println!("{:#?}", req_result["data"]);
+                Ok(())
+            }
+            Err(req_result) => {
+                let req_result_err_msg = req_result.to_string();
+                Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    req_result_err_msg,
+                )))
+            }
+        }
+    } else if sub_matches.contains_id(ALL_COMMANDS.arg_fulfill.1) {
+        // Get contract id from command line argument
+        let contract_id = sub_matches
+            .get_one::<String>(ALL_COMMANDS.arg_fulfill.1)
+            .unwrap();
+        println!("Fulfilling contract {}...", contract_id);
+
+        // Fulfill contract
+        let req_result = api.contract_fulfill_req(game_status, contract_id).await;
+
+        match req_result {
+            Ok(req_result) => {
+                println!("Contract {} fulfilled!", contract_id);
                 println!("{:#?}", req_result["data"]);
                 Ok(())
             }
