@@ -224,22 +224,27 @@ impl TradersApi {
             .await
     }
 
-    pub async fn contract_accept_req(
+    pub async fn contract_interact_req(
         &self,
         game_status: &HashMap<String, String>,
         contract_id: &str,
+        interact_type: &str,
+        request_body: HashMap<&str, &str>,
     ) -> Result<Value, Box<dyn std::error::Error>> {
         // Build url
-        let url = format!(
-            "{}{}/{}/accept",
+        let base_url = format!(
+            "{}{}/{}",
             self.api_url_root(),
             self.api_suburl_contracts(),
             contract_id
         );
+        let url = match interact_type {
+            "accept" => format!("{}/accept", base_url),
+            "fulfill" => format!("{}/fulfill", base_url),
+            _ => panic!("Invalid contract interaction type"),
+        };
 
-        // Build empty map
-        let map: HashMap<&str, &str> = HashMap::new();
-
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp_text = client
             .post(url)
@@ -249,46 +254,12 @@ impl TradersApi {
                 "Bearer ".to_owned() + game_status.get("token").unwrap(),
             )
             .header("Accept", "application/json")
-            .json(&map)
+            .json(&request_body)
             .send()
             .await?;
 
         // Check response
-        self.check_response(resp_text, "Error accepting contract")
-            .await
-    }
-
-    pub async fn contract_fulfill_req(
-        &self,
-        game_status: &HashMap<String, String>,
-        contract_id: &str,
-    ) -> Result<Value, Box<dyn std::error::Error>> {
-        // Build url
-        let url = format!(
-            "{}{}/{}/fulfill",
-            self.api_url_root(),
-            self.api_suburl_contracts(),
-            contract_id
-        );
-
-        // Build empty map
-        let map: HashMap<&str, &str> = HashMap::new();
-
-        let client: Client = reqwest::Client::new();
-        let resp_text = client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .header(
-                "Authorization",
-                "Bearer ".to_owned() + game_status.get("token").unwrap(),
-            )
-            .header("Accept", "application/json")
-            .json(&map)
-            .send()
-            .await?;
-
-        // Check response
-        self.check_response(resp_text, "Error fulfilling contract")
+        self.check_response(resp_text, "Error interacting with contract")
             .await
     }
 }

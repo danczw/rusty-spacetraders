@@ -337,8 +337,12 @@ pub async fn view_contract(
         println!("Accepting contract {}...", contract_id);
 
         // Accept contract
-        let req_result = api.contract_accept_req(game_status, contract_id).await;
+        let map: HashMap<&str, &str> = HashMap::new();
+        let req_result = api
+            .contract_interact_req(game_status, contract_id, "accept", map)
+            .await;
 
+        // Check if contract was accepted
         match req_result {
             Ok(req_result) => {
                 println!("Contract {} accepted!", contract_id);
@@ -361,8 +365,12 @@ pub async fn view_contract(
         println!("Fulfilling contract {}...", contract_id);
 
         // Fulfill contract
-        let req_result = api.contract_fulfill_req(game_status, contract_id).await;
+        let map: HashMap<&str, &str> = HashMap::new();
+        let req_result = api
+            .contract_interact_req(game_status, contract_id, "fulfill", map)
+            .await;
 
+        // Check if contract was fulfilled
         match req_result {
             Ok(req_result) => {
                 println!("Contract {} fulfilled!", contract_id);
