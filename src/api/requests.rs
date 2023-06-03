@@ -88,7 +88,7 @@ impl TradersApi {
         // Build the URL
         let url = format!("{}{}", self.api_url_root(), self.api_suburl_status());
 
-        // Get agent status from Space Traders
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp = client
             .get(url)
@@ -109,11 +109,12 @@ impl TradersApi {
         // Build url
         let url = format!("{}{}", self.api_url_root(), self.api_suburl_register());
 
-        // Register new agent with Space Traders
+        // Build request body with callsign and faction
         let mut map = HashMap::new();
         map.insert("symbol", callsign);
         map.insert("faction", "COSMIC");
 
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp = client
             .post(url)
@@ -142,7 +143,7 @@ impl TradersApi {
             sys_waypoint_tup.1
         );
 
-        // Get waypoint data from Space Traders
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp = client
             .get(url)
@@ -172,7 +173,7 @@ impl TradersApi {
             sys_name
         );
 
-        // Get system data from Space Traders
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp = client
             .get(url)
@@ -208,6 +209,7 @@ impl TradersApi {
             }
         };
 
+        // Initialize client and send request
         let client: Client = reqwest::Client::new();
         let resp_text = client
             .get(url)

@@ -22,7 +22,6 @@ pub async fn process_command(
         Some(("login", sub_matches)) => login_agent(api, game_status, sub_matches).await,
         Some(("location", sub_matches)) => view_location(api, game_status, sub_matches).await,
         Some(("contract", sub_matches)) => view_contract(api, game_status, sub_matches).await,
-
         _ => Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             "No command found.",
@@ -59,16 +58,9 @@ pub async fn get_status(
 
         println!("Getting remote status...");
         let req_result = api.remote_status_req(game_status).await;
-        if req_result.is_ok() {
-            println!("{:#?}", req_result.unwrap()["data"]);
-            return Ok(());
-        } else {
-            let req_result_err_msg = req_result.unwrap_err().to_string();
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                req_result_err_msg,
-            )));
-        }
+
+        // Check if request was successful
+        hlp::act_on_req_result(req_result, "Retrieval successful!", true)
     } else {
         // handle unknown error - should never happen ;)
         return Err(Box::new(std::io::Error::new(
@@ -92,8 +84,10 @@ pub async fn register_new_agent(
         .unwrap();
     let req_resp = api.reg_agent_req(callsign).await;
 
+    // Check if registration was successful
     match req_resp {
         Ok(resp_value) => {
+            // Update local status
             game_status.insert("callsign".to_string(), callsign.to_string());
             game_status.insert(
                 "token".to_string(),
@@ -102,6 +96,7 @@ pub async fn register_new_agent(
                     .trim_matches('"')
                     .to_string(),
             );
+            println!("{}", "Registration successful!".green());
             println!("Registered new agent '{}'.", callsign);
             println!("{:#?}", resp_value);
             Ok(())
@@ -151,20 +146,7 @@ pub async fn login_agent(
     let req_result = api.remote_status_req(game_status).await;
 
     // Check if login was successful
-    match req_result {
-        Ok(_) => {
-            println!("{}", "Login successful!".green());
-            println!("{:#?}", req_result.unwrap()["data"]);
-            Ok(())
-        }
-        Err(_) => {
-            let req_result_err_msg = req_result.unwrap_err().to_string();
-            Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                req_result_err_msg,
-            )))
-        }
-    }
+    hlp::act_on_req_result(req_result, "Login successful!", true)
 }
 
 pub async fn view_location(
@@ -188,44 +170,10 @@ pub async fn view_location(
         let sys_waypoint_tup = hlp::location_split(waypoint_passed);
 
         // Get waypoint data
-        let loc_req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
+        let req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
 
-        match loc_req_result {
-            Ok(req_result) => {
-                println!("{:#?}", req_result["data"]);
-                Ok(())
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )))
-            }
-        }
-    } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
-        // Get system location from command line argument
-        let system_passed = sub_matches
-            .get_one::<String>(ALL_COMMANDS.arg_system.1)
-            .unwrap();
-        println!("Getting data for system {}...", system_passed);
-
-        // Get system data
-        let loc_req_result = api.loc_system_req(game_status, system_passed).await;
-
-        match loc_req_result {
-            Ok(req_result) => {
-                println!("{:#?}", req_result["data"]);
-                return Ok(());
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )));
-            }
-        }
+        // Check if location view request was successful
+        hlp::act_on_req_result(req_result, "Retrieval successful!", true)
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_system.1) {
         // Get system location from command line argument
         let system_passed = sub_matches
@@ -236,19 +184,8 @@ pub async fn view_location(
         // Get system data
         let req_result = api.loc_system_req(game_status, system_passed).await;
 
-        match req_result {
-            Ok(req_result) => {
-                println!("{:#?}", req_result["data"]);
-                return Ok(());
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )));
-            }
-        }
+        // Check if location view request was successful
+        hlp::act_on_req_result(req_result, "Retrieval successful!", true)
     } else {
         println!("Getting data for headquarter waypoint...");
         // Get remote status
@@ -269,20 +206,8 @@ pub async fn view_location(
                 // Get waypoint data
                 let loc_req_result = api.loc_waypoint_req(game_status, sys_waypoint_tup).await;
 
-                match loc_req_result {
-                    Ok(req_result) => {
-                        println!("{}", "Contract data:".green());
-                        println!("{:#?}", req_result["data"]);
-                        return Ok(());
-                    }
-                    Err(req_result) => {
-                        let req_result_err_msg = req_result.to_string();
-                        return Err(Box::new(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            req_result_err_msg,
-                        )));
-                    }
-                }
+                // Check if location view request was successful
+                hlp::act_on_req_result(loc_req_result, "Retrieval successful!", true)
             }
             Err(status_req_result) => {
                 let status_req_result_err_msg = status_req_result.to_string();
@@ -316,19 +241,8 @@ pub async fn view_contract(
         // Get contract data
         let req_result = api.contract_data_req(game_status, Some(contract_id)).await;
 
-        match req_result {
-            Ok(req_result) => {
-                println!("{:#?}", req_result["data"]);
-                Ok(())
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )))
-            }
-        }
+        // Check if contract data request was successful
+        hlp::act_on_req_result(req_result, "Retrieval successful!", true)
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_accept.1) {
         // Get contract id from command line argument
         let contract_id = sub_matches
@@ -343,20 +257,7 @@ pub async fn view_contract(
             .await;
 
         // Check if contract was accepted
-        match req_result {
-            Ok(req_result) => {
-                println!("Contract {} accepted!", contract_id);
-                println!("{:#?}", req_result["data"]);
-                Ok(())
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )))
-            }
-        }
+        hlp::act_on_req_result(req_result, "Contract accepted!", true)
     } else if sub_matches.contains_id(ALL_COMMANDS.arg_fulfill.1) {
         // Get contract id from command line argument
         let contract_id = sub_matches
@@ -371,37 +272,13 @@ pub async fn view_contract(
             .await;
 
         // Check if contract was fulfilled
-        match req_result {
-            Ok(req_result) => {
-                println!("Contract {} fulfilled!", contract_id);
-                println!("{:#?}", req_result["data"]);
-                Ok(())
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )))
-            }
-        }
+        hlp::act_on_req_result(req_result, "Contract fulfilled!", true)
     } else {
         // Get all contracts data
         println!("Getting data for all your contracts...");
         let req_result = api.contract_data_req(game_status, None).await;
 
-        match req_result {
-            Ok(req_result) => {
-                println!("{:#?}", req_result["data"]);
-                Ok(())
-            }
-            Err(req_result) => {
-                let req_result_err_msg = req_result.to_string();
-                Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    req_result_err_msg,
-                )))
-            }
-        }
+        // Check if contract data was retrieved
+        hlp::act_on_req_result(req_result, "Retrieval successful!", true)
     }
 }
